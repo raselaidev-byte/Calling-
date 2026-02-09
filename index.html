@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Voice Connect</title>
+    <!-- Icons ke liye FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* --- CSS STYLING (DESIGN) --- */
+        :root {
+            --primary: #6C63FF;
+            --secondary: #2A2D3E;
+            --danger: #FF6584;
+            --success: #00D2D3;
+            --text: #ffffff;
+            --bg: #1F2235;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Main Card */
+        .app-container {
+            width: 380px;
+            background: var(--secondary);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            padding: 25px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Header */
+        .header { text-align: center; margin-bottom: 10px; }
+        .header h2 { font-weight: 600; letter-spacing: 1px; }
+        .status-dot {
+            height: 10px; width: 10px;
+            background-color: red;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            box-shadow: 0 0 5px red;
+        }
+        .status-text { font-size: 12px; color: #888; }
+
+        /* ID Section */
+        .id-section {
+            background: var(--glass);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        .my-id {
+            font-family: monospace;
+            font-size: 18px;
+            color: var(--success);
+            margin: 5px 0;
+            word-break: break-all;
+        }
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: 0.3s;
+        }
+        .copy-btn:hover { background: var(--primary); color: white; }
+
+        /* Input Section */
+        .input-group { position: relative; }
+        input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            background: var(--glass);
+            color: white;
+            outline: none;
+            font-size: 14px;
+        }
+        .call-btn {
+            width: 100%;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(45deg, var(--primary), #4834d4);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(108, 99, 255, 0.4);
+        }
+        .call-btn:hover { transform: translateY(-2px); }
+
+        /* Call Screen (Overlay) */
+        .call-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--secondary);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            display: none; /* Initially Hidden */
+        }
+        
+        .avatar {
+            width: 100px; height: 100px;
+            background: var(--glass);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: var(--text);
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        /* Pulse Animation */
+        .pulse::after {
+            content: '';
+            position: absolute;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--success);
+            animation: pulse-anim 2s infinite;
+        }
+        @keyframes pulse-anim {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .timer { font-size: 24px; font-weight: bold; margin-bottom: 30px; }
+        
+        .controls { display: flex; gap: 20px; }
+        .control-btn {
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .btn-mute { background: #444; color: white; }
+        .btn-mute.muted { background: #f1c40f; color: black; }
+        .btn-end { background: var(--danger); color: white; }
+        .btn-end:hover { background: #ff4757; }
+
+        /* Logs */
+        .logs {
+            font-size: 11px;
+            color: #666;
+            margin-top: 10px;
+            max-height: 50px;
+            overflow-y: auto;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 5px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <h2>Voice Connect Pro</h2>
+            <div>
+                <span class="status-dot" id="connection-dot"></span>
+                <span class="status-text" id="status-text">Connecting to server...</span>
+            </div>
+        </div>
+
+        <!-- My ID Area -->
+        <div class="id-section">
+            <p style="font-size: 12px; color:#aaa;">Your ID</p>
+            <h3 class="my-id" id="my-peer-id">...</h3>
+            <button class="copy-btn" onclick="copyToClipboard()"><i class="fas fa-copy"></i> Copy ID</button>
+        </div>
+
+        <!-- Connection Area -->
+        <div class="input-group">
+            <input type="text" id="remote-id" placeholder="Paste Friend's ID here...">
+        </div>
+        <button class="call-btn" onclick="startCall()"><i class="fas fa-phone-alt"></i> Call Now</button>
+
+        <!-- Logs -->
+        <div class="logs" id="logs">
+            <div>Application started...</div>
+        </div>
+
+        <!-- Active Call Screen Overlay -->
+        <div class="call-screen" id="call-screen">
+            <div class="avatar pulse">
+                <i class="fas fa-user"></i>
+            </div>
+            <div id="call-status-msg" style="margin-bottom: 10px; color: #aaa;">Connected</div>
+            <div class="timer" id="timer">00:00</div>
+            
+            <div class="controls">
+                <button class="control-btn btn-mute" id="mute-btn" onclick="toggleMute()">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="control-btn btn-end" onclick="endCurrentCall()">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Audio Elements -->
+    <audio id="remote-audio"></audio>
+
+    <!-- PeerJS Library -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <script>
+        /* --- JAVASCRIPT LOGIC --- */
+        
+        // UI Elements
+        const myIdEl = document.getElementById('my-peer-id');
+        const remoteIdInput = document.getElementById('remote-id');
+        const statusText = document.getElementById('status-text');
+        const connectionDot = document.getElementById('connection-dot');
+        const logsDiv = document.getElementById('logs');
+        const callScreen = document.getElementById('call-screen');
+        const timerEl = document.getElementById('timer');
+        const remoteAudio = document.getElementById('remote-audio');
+        const muteBtn = document.getElementById('mute-btn');
+
+        // Variables
+        let localStream = null;
+        let peer = null;
+        let currentCall = null;
+        let timerInterval = null;
+        let seconds = 0;
+        let isMuted = false;
+
+        // 1. Initialize App
+        async function init() {
+            log("Initializing...");
+            try {
+                // Get Microphone Access
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                log("Microphone access granted.");
+
+                // Setup PeerJS
+                peer = new Peer();
+
+                peer.on('open', (id) => {
+                    myIdEl.innerText = id;
+                    statusText.innerText = "Online & Ready";
+                    connectionDot.style.backgroundColor = "#00D2D3"; // Green
+                    connectionDot.style.boxShadow = "0 0 5px #00D2D3";
+                    log("ID Generated: " + id);
+                });
+
+                peer.on('error', (err) => {
+                    console.error(err);
+                    log("Error: " + err.type);
+                    alert("Connection Error. Please refresh.");
+                });
+
+                // Listen for Incoming Calls
+                peer.on('call', (call) => {
+                    if(confirm("Incoming call! Accept?")) {
+                        showCallScreen();
+                        call.answer(localStream);
+                        handleCallEvents(call);
+                        log("Call Answered.");
+                    } else {
+                        log("Call Rejected.");
+                    }
+                });
+
+            } catch (err) {
+                console.error(err);
+                statusText.innerText = "Mic Error!";
+                log("Error: Microphone access denied.");
+                alert("Please allow microphone access!");
+            }
+        }
+
+        // 2. Start Outgoing Call
+        function startCall() {
+            const remoteId = remoteIdInput.value.trim();
+            if (!remoteId) {
+                alert("Please enter a valid ID");
+                return;
+            }
+            if (remoteId === myIdEl.innerText) {
+                alert("You cannot call yourself!");
+                return;
+            }
+
+            log("Calling " + remoteId + "...");
+            showCallScreen();
+            document.getElementById('call-status-msg').innerText = "Connecting...";
+            
+            const call = peer.call(remoteId, localStream);
+            handleCallEvents(call);
+        }
+
+        // 3. Handle Call Events (Stream, Close, Error)
+        function handleCallEvents(call) {
+            currentCall = call;
+
+            call.on('stream', (remoteStream) => {
+                // Play remote audio
+                remoteAudio.srcObject = remoteStream;
+                remoteAudio.play();
+                
+                document.getElementById('call-status-msg').innerText = "Connected";
+                startTimer();
+                log("Voice Connected.");
+            });
+
+            call.on('close', () => {
+                endCurrentCall(true);
+            });
+
+            call.on('error', (err) => {
+                log("Call Error: " + err);
+                endCurrentCall(true);
+            });
+        }
+
+        // 4. End Call Logic
+        function endCurrentCall(isRemote = false) {
+            if (currentCall) {
+                currentCall.close();
+            }
+            currentCall = null;
+            hideCallScreen();
+            stopTimer();
+            if(!isRemote) log("Call Ended by you.");
+            else log("Call Ended by remote user.");
+        }
+
+        // 5. Mute/Unmute Logic
+        function toggleMute() {
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    isMuted = !isMuted;
+                    audioTrack.enabled = !isMuted;
+                    
+                    if (isMuted) {
+                        muteBtn.classList.add('muted');
+                        muteBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                        log("Microphone Muted");
+                    } else {
+                        muteBtn.classList.remove('muted');
+                        muteBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                        log("Microphone Unmuted");
+                    }
+                }
+            }
+        }
+
+        // 6. Timer Logic
+        function startTimer() {
+            seconds = 0;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                seconds++;
+                const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const secs = (seconds % 60).toString().padStart(2, '0');
+                timerEl.innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerEl.innerText = "00:00";
+        }
+
+        // 7. UI Helpers
+        function showCallScreen() {
+            callScreen.style.display = 'flex';
+        }
+
+        function hideCallScreen() {
+            callScreen.style.display = 'none';
+        }
+
+        function copyToClipboard() {
+            const id = myIdEl.innerText;
+            navigator.clipboard.writeText(id).then(() => {
+                log("ID Copied to clipboard.");
+                alert("ID Copied!");
+            });
+        }
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const entry = document.createElement('div');
+            entry.innerText = `[${time}] ${msg}`;
+            logsDiv.prepend(entry);
+        }
+
+        // Start App on Load
+        window.onload = init;
+
+    </script>
+</body>
+</html>
